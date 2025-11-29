@@ -11,7 +11,7 @@ import reactor.core.publisher.Mono;
 
 
 @RestController
-@RequestMapping("/Ingressos")
+@RequestMapping("/ingressos")
 public class IngressoController {
 
     @Autowired
