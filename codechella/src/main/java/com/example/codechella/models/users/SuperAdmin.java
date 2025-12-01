@@ -1,12 +1,14 @@
 package com.example.codechella.models.users;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
 @Table("super_admin")
 public class SuperAdmin {
 
     @Id
+    @Column("id")
     private Long idSuperAdmin;
 
     private String nome;

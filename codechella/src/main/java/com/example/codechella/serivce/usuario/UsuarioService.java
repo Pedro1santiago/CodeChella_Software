@@ -1,12 +1,8 @@
 package com.example.codechella.serivce.usuario;
 
-import com.example.codechella.models.users.LoginRequest;
-import com.example.codechella.models.users.TipoUsuario;
-import com.example.codechella.models.users.Usuario;
-import com.example.codechella.models.users.UsuarioMapper;
-import com.example.codechella.models.users.UsuarioRegisterRequest;
-import com.example.codechella.models.users.UsuarioResponseDTO;
+import com.example.codechella.models.users.*;
 import com.example.codechella.repository.UsuarioRepository;
+import com.example.codechella.repository.SuperAdminRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -30,6 +26,9 @@ public class UsuarioService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private SuperAdminRepository superAdminRepository;
+
     public Mono<UsuarioResponseDTO> cadastrar(UsuarioRegisterRequest req) {
         log.info("[CADASTRO] Recebendo request: {}", req);
 
@@ -39,12 +38,9 @@ public class UsuarioService {
         }
 
         return usuarioRepository.findByEmail(req.email())
-                .flatMap(u -> {
-                    log.warn("[CADASTRO] Email já cadastrado: {}", req.email());
-                    return Mono.<UsuarioResponseDTO>error(
-                            new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email já cadastrado")
-                    );
-                })
+                .flatMap(u -> Mono.<UsuarioResponseDTO>error(
+                        new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email já cadastrado")
+                ))
                 .switchIfEmpty(Mono.defer(() -> {
                     Usuario usuario = UsuarioMapper.toEntity(req);
                     usuario.setTipoUsuario(TipoUsuario.USER);
@@ -61,21 +57,23 @@ public class UsuarioService {
     }
 
     public Mono<UsuarioResponseDTO> login(LoginRequest login) {
+        log.info("[LOGIN] Tentativa de login para email: {}", login.email());
         return usuarioRepository.findByEmail(login.email())
                 .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado")))
                 .flatMap(usuario -> {
                     if (!passwordEncoder.matches(login.senha(), usuario.getSenha())) {
+                        log.warn("[LOGIN] Senha incorreta para email: {}", login.email());
                         return Mono.error(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Senha incorreta"));
                     }
+                    log.info("[LOGIN] Login bem-sucedido para email: {}", login.email());
                     return Mono.just(UsuarioMapper.toDTO(usuario));
                 });
     }
 
-    public Mono<Void> removerUsuario(Long id, Long superAdminId, com.example.codechella.repository.SuperAdminRepository superAdminRepository) {
-        // validar super admin por id (alternativa: injetar SuperAdminRepository no serviço)
+    public Mono<Void> removerUsuario(Long id, Long superAdminId) {
         return superAdminRepository.findById(superAdminId)
                 .filter(s -> s.getTipoUsuario() == TipoUsuario.SUPER)
-                .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.FORBIDDEN,"Acesso negado")))
+                .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.FORBIDDEN, "Acesso negado")))
                 .then(usuarioRepository.findById(id)
                         .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado")))
                         .flatMap(usuarioRepository::delete));
