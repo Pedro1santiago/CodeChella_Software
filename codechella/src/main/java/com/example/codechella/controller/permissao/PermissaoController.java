@@ -1,7 +1,6 @@
 package com.example.codechella.controller.permissao;
 
 import com.example.codechella.models.users.SolicitacaoPermissaoDTO;
-import com.example.codechella.models.users.SuperAdmin;
 import com.example.codechella.serivce.permissao.PermissaoService;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -33,7 +32,23 @@ public class PermissaoController {
     // Super Admin lista solicitações pendentes
     @GetMapping(value = "/pendentes", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<SolicitacaoPermissaoDTO> listarSolicitacoesPendentes(
-            @RequestHeader("super-admin-id") Long superAdminId) {
+            @RequestParam(value = "token", required = false) String tokenQuery,
+            @RequestHeader(value = "Authorization", required = false) String authHeader
+    ) {
+        String token = null;
+
+        if (tokenQuery != null && !tokenQuery.isEmpty()) {
+            token = tokenQuery;
+        } else if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            token = authHeader.substring(7);
+        }
+
+        if (token == null || token.isEmpty()) {
+            throw new IllegalArgumentException("Token JWT não fornecido");
+        }
+
+        Long superAdminId = permissaoService.getSuperAdminIdFromToken(token);
+
         return permissaoService.listarSolicitacoesPendentes(superAdminId);
     }
 

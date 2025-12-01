@@ -4,7 +4,10 @@ import com.example.codechella.models.users.*;
 import com.example.codechella.repository.SolicitacaoPermissaoRepository;
 import com.example.codechella.repository.UsuarioRepository;
 import com.example.codechella.repository.SuperAdminRepository;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -23,6 +26,9 @@ public class PermissaoService {
     @Autowired
     private SuperAdminRepository superAdminRepository;
 
+    @Value("${jwt.secret}")
+    private String jwtSecret;
+
     private Mono<Void> validarSuperAdminPorId(Long superAdminId) {
         return superAdminRepository.findById(superAdminId)
                 .filter(s -> s.getTipoUsuario() == TipoUsuario.SUPER)
@@ -30,7 +36,27 @@ public class PermissaoService {
                 .then();
     }
 
-    // Usuário Normal solicita permissão para virar Admin
+    public Long getSuperAdminIdFromToken(String token) {
+        try {
+            Claims claims = Jwts.parser()
+                    .setSigningKey(jwtSecret.getBytes())
+                    .parseClaimsJws(token)
+                    .getBody();
+
+            Object idClaim = claims.get("id");
+            if (idClaim instanceof Integer) {
+                return ((Integer) idClaim).longValue();
+            } else if (idClaim instanceof Long) {
+                return (Long) idClaim;
+            } else if (idClaim instanceof String) {
+                return Long.parseLong((String) idClaim);
+            }
+            throw new IllegalArgumentException("ID inválido no token");
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token JWT inválido");
+        }
+    }
+
     public Mono<SolicitacaoPermissaoDTO> solicitarPermissaoAdmin(Long idUsuario) {
         return usuarioRepository.findById(idUsuario)
                 .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado")))
