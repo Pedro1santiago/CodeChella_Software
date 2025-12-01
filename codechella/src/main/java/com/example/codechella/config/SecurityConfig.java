@@ -33,8 +33,8 @@ public class SecurityConfig {
                         .pathMatchers("/permissoes/solicitar").permitAll()
                         .pathMatchers("/permissoes/minhas-solicitacoes").permitAll()
                         .pathMatchers("/permissoes/pendentes").hasRole("SUPER")
-                        .pathMatchers("/permissoes/**/aprovar").hasRole("SUPER")
-                        .pathMatchers("/permissoes/**/negar").hasRole("SUPER")
+                        .pathMatchers("/permissoes/*/aprovar").hasRole("SUPER")
+                        .pathMatchers("/permissoes/*/negar").hasRole("SUPER")
                         .anyExchange().authenticated()
                 );
 
