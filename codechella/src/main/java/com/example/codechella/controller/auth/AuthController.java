@@ -22,7 +22,7 @@ public class AuthController {
         this.superAdminAuthService = superAdminAuthService;
     }
 
-    @PostMapping("/usuario/register")
+    @PostMapping("/usuario/registrar")
     public Mono<UsuarioResponseDTO> registerUsuario(@RequestBody UsuarioRegisterRequest request) {
         return usuarioService.cadastrar(request);
     }

@@ -29,7 +29,7 @@ public class EventoControler {
 
     @GetMapping(value = "/categoria/{tipo}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<EventoDTO> obterPorTipo(@PathVariable String tipo) {
-        // importante: no service você deve filtrar eventos por tipo se quiser SSE por tipo
+
         return service.obterPorTipo(tipo);
     }
 
