@@ -16,6 +16,7 @@ public class CorsConfig {
         CorsConfiguration config = new CorsConfiguration();
 
         config.setAllowedOriginPatterns(Arrays.asList(
+                "http://localhost:5173",
                 "https://codechalle-front.vercel.app",
                 "https://*.vercel.app"
         ));
