@@ -130,8 +130,7 @@ public class EventoService {
     }
 
     // Busca por categoria
-    public Flux<EventoDTO> obterPorTipo(String tipo) {
-        TipoEvento tipoEvento = TipoEvento.valueOf(tipo.toUpperCase());
-        return repository.findByTipo(tipoEvento).map(EventoDTO::toDto);
+    public Flux<EventoDTO> obterPorTipo(TipoEvento tipo) {
+        return repository.findByTipo(tipo).map(EventoDTO::toDto);
     }
 }

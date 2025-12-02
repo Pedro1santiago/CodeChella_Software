@@ -1,11 +1,14 @@
 package com.example.codechella.controller.evento;
 
 import com.example.codechella.models.evento.EventoDTO;
+import com.example.codechella.models.evento.TipoEvento;
 import com.example.codechella.models.users.TipoUsuario;
 import com.example.codechella.serivce.eventoService.EventoService;
 import com.example.codechella.serivce.superAdminService.SuperAdminService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -29,8 +32,11 @@ public class EventoController {
 
     // Lista eventos por categoria
     @GetMapping("/categoria/{tipo}")
-    public Flux<EventoDTO> obterPorTipo(@PathVariable String tipo) {
-        return service.obterPorTipo(tipo);
+    public Flux<EventoDTO> obterPorTipo(@PathVariable TipoEvento tipo) {
+        return service.obterPorTipo(tipo)
+                .switchIfEmpty(Flux.error(
+                        new ResponseStatusException(HttpStatus.NOT_FOUND, "Nenhum evento encontrado para a categoria: " + tipo)
+                ));
     }
 
     // Busca evento por ID
