@@ -27,7 +27,7 @@ public class PermissaoController {
         return permissaoService.minhasSolicitacoes(idUsuario);
     }
 
-    @GetMapping(value = "/pendentes", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @GetMapping("/pendentes")
     public Flux<SolicitacaoPermissaoDTO> listarSolicitacoesPendentes(
             @RequestParam(value = "token", required = false) String tokenQuery,
             @RequestHeader(value = "Authorization", required = false) String authHeader
