@@ -2,7 +2,6 @@ package com.example.codechella.controller.permissao;
 
 import com.example.codechella.models.users.SolicitacaoPermissaoDTO;
 import com.example.codechella.serivce.permissao.PermissaoService;
-import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -36,12 +35,23 @@ public class PermissaoController {
 
         if (tokenQuery != null && !tokenQuery.isEmpty()) {
             token = tokenQuery;
+            System.out.println("🔵 Token recebido via query string: " + token.substring(0, Math.min(token.length(), 20)) + "...");
         } else if (authHeader != null && authHeader.startsWith("Bearer ")) {
             token = authHeader.substring(7);
+            System.out.println("🔵 Token recebido via Authorization header: " + token.substring(0, Math.min(token.length(), 20)) + "...");
+        } else {
+            System.out.println("⚠️ Nenhum token recebido na requisição");
+            throw new RuntimeException("Token JWT é necessário");
         }
 
-        Long superAdminId = permissaoService.getSuperAdminIdFromToken(token);
-        return permissaoService.listarSolicitacoesPendentes(superAdminId);
+        try {
+            Long superAdminId = permissaoService.getSuperAdminIdFromToken(token);
+            System.out.println("SuperAdminId extraído do token: " + superAdminId);
+            return permissaoService.listarSolicitacoesPendentes(superAdminId);
+        } catch (Exception e) {
+            System.out.println("Erro ao validar token ou extrair SuperAdminId: " + e.getMessage());
+            throw e;
+        }
     }
 
     @PutMapping("/{id}/aprovar")
