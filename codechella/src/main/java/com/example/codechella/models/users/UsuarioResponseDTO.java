@@ -7,5 +7,6 @@ public record UsuarioResponseDTO(
         String nome,
         String email,
         TipoUsuario tipoUsuario,
-        LocalDateTime criadoEm
+        LocalDateTime criadoEm,
+        String token 
 ) {}

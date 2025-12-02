@@ -3,7 +3,9 @@ package com.example.codechella.serivce.usuario;
 import com.example.codechella.models.users.*;
 import com.example.codechella.repository.UsuarioRepository;
 import com.example.codechella.repository.SuperAdminRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -14,20 +16,28 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
+import java.util.Date;
+import java.util.List;
 
 @Service
 public class UsuarioService {
 
     private static final Logger log = LoggerFactory.getLogger(UsuarioService.class);
 
-    @Autowired
-    private UsuarioRepository usuarioRepository;
+    private final UsuarioRepository usuarioRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final SuperAdminRepository superAdminRepository;
+    private final String secretKey;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-
-    @Autowired
-    private SuperAdminRepository superAdminRepository;
+    public UsuarioService(UsuarioRepository usuarioRepository,
+                          PasswordEncoder passwordEncoder,
+                          SuperAdminRepository superAdminRepository,
+                          @Value("${jwt.secret}") String secretKey) {
+        this.usuarioRepository = usuarioRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.superAdminRepository = superAdminRepository;
+        this.secretKey = secretKey;
+    }
 
     public Mono<UsuarioResponseDTO> cadastrar(UsuarioRegisterRequest req) {
         log.info("[CADASTRO] Recebendo request: {}", req);
@@ -58,6 +68,7 @@ public class UsuarioService {
 
     public Mono<UsuarioResponseDTO> login(LoginRequest login) {
         log.info("[LOGIN] Tentativa de login para email: {}", login.email());
+
         return usuarioRepository.findByEmail(login.email())
                 .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado")))
                 .flatMap(usuario -> {
@@ -65,8 +76,26 @@ public class UsuarioService {
                         log.warn("[LOGIN] Senha incorreta para email: {}", login.email());
                         return Mono.error(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Senha incorreta"));
                     }
+
                     log.info("[LOGIN] Login bem-sucedido para email: {}", login.email());
-                    return Mono.just(UsuarioMapper.toDTO(usuario));
+
+                    // ===== GERAR JWT =====
+                    String token = Jwts.builder()
+                            .setSubject(usuario.getId().toString())
+                            .claim("roles", List.of(usuario.getTipoUsuario().name()))
+                            .setIssuedAt(new Date())
+                            .setExpiration(new Date(System.currentTimeMillis() + 86400000)) // 1 dia
+                            .signWith(SignatureAlgorithm.HS256, secretKey.getBytes())
+                            .compact();
+
+                    return Mono.just(new UsuarioResponseDTO(
+                            usuario.getId(),
+                            usuario.getNome(),
+                            usuario.getEmail(),
+                            usuario.getTipoUsuario(),
+                            usuario.getCriadoEm(),
+                            token
+                    ));
                 });
     }
 

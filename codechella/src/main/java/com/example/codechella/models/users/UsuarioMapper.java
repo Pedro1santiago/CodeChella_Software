@@ -20,9 +20,19 @@ public class UsuarioMapper {
                 usuario.getNome(),
                 usuario.getEmail(),
                 usuario.getTipoUsuario(),
-                usuario.getCriadoEm()
+                usuario.getCriadoEm(),
+                null // sem token
         );
     }
 
-
+    public static UsuarioResponseDTO toDTO(Usuario usuario, String token) {
+        return new UsuarioResponseDTO(
+                usuario.getId(),
+                usuario.getNome(),
+                usuario.getEmail(),
+                usuario.getTipoUsuario(),
+                usuario.getCriadoEm(),
+                token
+        );
+    }
 }

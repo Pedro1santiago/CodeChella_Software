@@ -20,6 +20,8 @@ public class SecurityConfig {
 
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
+        JwtAuthenticationConverter converter = new JwtAuthenticationConverter(secretKey);
+
         http
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(request -> {
@@ -35,8 +37,6 @@ public class SecurityConfig {
                 }))
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers("/auth/**").permitAll()
-                        .pathMatchers("/permissoes/solicitar").permitAll()
-                        .pathMatchers("/permissoes/minhas-solicitacoes").permitAll()
                         .pathMatchers("/permissoes/pendentes").hasRole("SUPER")
                         .pathMatchers("/permissoes/*/aprovar").hasRole("SUPER")
                         .pathMatchers("/permissoes/*/negar").hasRole("SUPER")
