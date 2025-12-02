@@ -3,6 +3,7 @@ package com.example.codechella.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.ReactiveAuthenticationManager;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
@@ -52,6 +53,8 @@ public class SecurityConfig {
                 .addFilterAt(jwtFilter, SecurityWebFiltersOrder.AUTHENTICATION)
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers("/auth/**").permitAll()
+                        .pathMatchers(HttpMethod.GET, "/eventos").permitAll()
+                        .pathMatchers(HttpMethod.GET, "/eventos/**").permitAll()
                         .pathMatchers("/permissoes/pendentes").hasRole("SUPER")
                         .pathMatchers("/permissoes/*/aprovar").hasRole("SUPER")
                         .pathMatchers("/permissoes/*/negar").hasRole("SUPER")
