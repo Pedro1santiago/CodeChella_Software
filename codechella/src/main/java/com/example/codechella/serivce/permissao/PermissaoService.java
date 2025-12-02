@@ -45,14 +45,16 @@ public class PermissaoService {
                     .parseClaimsJws(token)
                     .getBody();
 
-            Object idClaim = claims.get("id");
-            if (idClaim instanceof Integer) return ((Integer) idClaim).longValue();
-            if (idClaim instanceof Long) return (Long) idClaim;
-            if (idClaim instanceof String) return Long.parseLong((String) idClaim);
+            String subject = claims.getSubject();
+            if (subject == null || subject.isEmpty()) {
+                throw new IllegalArgumentException("Token sem subject");
+            }
 
-            throw new IllegalArgumentException();
+            return Long.parseLong(subject);
+
         } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+            System.out.println("Erro ao validar token: " + e.getMessage());
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token inválido");
         }
     }
 

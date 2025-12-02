@@ -28,7 +28,9 @@ public class JwtAuthenticationConverter implements ServerAuthenticationConverter
     @Override
     public Mono<Authentication> convert(ServerWebExchange exchange) {
         String authHeader = exchange.getRequest().getHeaders().getFirst("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) return Mono.empty();
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return Mono.empty();
+        }
 
         String token = authHeader.substring(7);
 
@@ -43,19 +45,18 @@ public class JwtAuthenticationConverter implements ServerAuthenticationConverter
 
             List<String> roles = claims.get("roles", List.class);
             List<SimpleGrantedAuthority> authorities = roles == null ? List.of() :
-                    roles.stream().map(role -> new SimpleGrantedAuthority("ROLE_" + role.toString()))
+                    roles.stream()
+                            .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
                             .collect(Collectors.toList());
 
             Object superAdminIdObj = claims.get("SuperAdminId");
-            String superAdminId = superAdminIdObj != null ? superAdminIdObj.toString() : null;
-
-            if (superAdminId == null) {
+            if (superAdminIdObj == null) {
                 log.warn("SuperAdminId ausente no token para usuário {}", username);
-                return Mono.empty(); // Retorna 401 se SuperAdminId é obrigatório
+            } else {
+                log.info("SuperAdminId encontrado: {}", superAdminIdObj);
             }
 
             Authentication auth = new UsernamePasswordAuthenticationToken(username, token, authorities);
-
             return Mono.just(auth);
 
         } catch (Exception e) {
