@@ -5,14 +5,17 @@ import com.example.codechella.models.evento.EventoDTO;
 import com.example.codechella.models.evento.StatusEvento;
 import com.example.codechella.models.evento.TipoEvento;
 import com.example.codechella.models.users.TipoUsuario;
-import com.example.codechella.models.users.UserAdmin;
+import com.example.codechella.models.users.SuperAdmin;
+import com.example.codechella.models.users.Usuario;
 import com.example.codechella.repository.EventoRepository;
-import com.example.codechella.repository.UsuarioAdminRepository;
+import com.example.codechella.repository.SuperAdminRepository;
 import com.example.codechella.repository.UsuarioRepository;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -26,94 +29,109 @@ public class EventoService {
     private UsuarioRepository usuarioRepository;
 
     @Autowired
-    private UsuarioAdminRepository usuarioAdminRepository;
+    private SuperAdminRepository superAdminRepository;
 
-    private Mono<UserAdmin> validarAdminPorId(Long adminId) {
-        // primeiro tenta encontrar em usuario (promovido)
-        return usuarioRepository.findById(adminId)
-                .filter(u -> u.getTipoUsuario() == TipoUsuario.ADMIN)
-                .map(u -> {
-                    UserAdmin ua = new UserAdmin();
-                    ua.setIdUsuario(u.getId());
-                    ua.setNome(u.getNome());
-                    ua.setEmail(u.getEmail());
-                    ua.setTipoUsuario(u.getTipoUsuario());
-                    return ua;
-                })
+    // Valida se é ADMIN ou SUPER
+    private Mono<TipoUsuario> validarCriador(Long usuarioId) {
+        // procura super admin
+        return superAdminRepository.findById(usuarioId)
+                .map(SuperAdmin::getTipoUsuario)
                 .switchIfEmpty(
-                        usuarioAdminRepository.findById(adminId)
-                                .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.FORBIDDEN, "Apenas administradores podem fazer essa alteração")))
-                );
+                        // procura admin comum
+                        usuarioRepository.findById(usuarioId)
+                                .map(Usuario::getTipoUsuario)
+                )
+                .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuário não encontrado")))
+                .flatMap(tipo -> {
+                    if (tipo == TipoUsuario.ADMIN || tipo == TipoUsuario.SUPER) {
+                        return Mono.just(tipo);
+                    }
+                    return Mono.error(new ResponseStatusException(HttpStatus.FORBIDDEN, "Apenas administradores podem realizar esta operação"));
+                });
     }
 
-    public Flux<EventoDTO> listarTodos(){
+    // Lista todos os eventos
+    public Flux<EventoDTO> listarTodos() {
         return repository.findAll().map(EventoDTO::toDto);
     }
 
-    public Mono<EventoDTO> buscarPorId(Long id){
+    // Buscar evento por ID
+    public Mono<EventoDTO> buscarPorId(Long id) {
         return repository.findById(id)
                 .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Evento não encontrado")))
                 .map(EventoDTO::toDto);
     }
 
-    public Mono<EventoDTO> cadastrarEvento(Long adminId, EventoDTO dto) {
-        return validarAdminPorId(adminId)
-                .flatMap(userAdmin -> {
+    // Criar evento (ADMIN e SUPER)
+    public Mono<EventoDTO> cadastrarEvento(Long usuarioId, EventoDTO dto) {
+        return validarCriador(usuarioId)
+                .flatMap(tipo -> {
                     Evento evento = dto.toEntity();
                     evento.setStatusEvento(StatusEvento.ABERTO);
-                    evento.setIdAdminCriador(userAdmin.getIdUsuario());
+                    evento.setIdAdminCriador(usuarioId); // salva o criador
                     return repository.save(evento).map(EventoDTO::toDto);
                 });
     }
 
-    public Mono<EventoDTO> cancelarEvento(Long id, Long adminId) {
-        return validarAdminPorId(adminId)
-                .flatMap(userAdmin -> repository.findById(id)
+    // Atualizar evento
+    public Mono<EventoDTO> atualizarId(Long id, EventoDTO dto, Long usuarioId) {
+        return validarCriador(usuarioId)
+                .flatMap(tipo -> repository.findById(id)
                         .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Evento não encontrado")))
                         .flatMap(evento -> {
-                            if (!userAdmin.getTipoUsuario().equals(TipoUsuario.SUPER) &&
-                                    !evento.getIdAdminCriador().equals(userAdmin.getIdUsuario())) {
-                                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Você só pode cancelar eventos que criou");
-                            }
-                            evento.setStatusEvento(StatusEvento.FECHADO);
-                            return repository.save(evento).map(EventoDTO::toDto);
-                        }));
-    }
 
-    public Mono<EventoDTO> atualizarId(Long id, EventoDTO dto, Long adminId){
-        return validarAdminPorId(adminId)
-                .flatMap(userAdmin -> repository.findById(id)
-                        .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Evento não encontrado")))
-                        .flatMap(evento -> {
-                            if (!userAdmin.getTipoUsuario().equals(TipoUsuario.SUPER) &&
-                                    !evento.getIdAdminCriador().equals(userAdmin.getIdUsuario())) {
+                            // super admin pode tudo
+                            if (tipo != TipoUsuario.SUPER &&
+                                    !evento.getIdAdminCriador().equals(usuarioId)) {
                                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Você só pode atualizar eventos que criou");
                             }
+
                             evento.setTipo(dto.tipo());
                             evento.setNome(dto.nome());
                             evento.setData(dto.data());
                             evento.setDescricao(dto.descricao());
                             evento.setNumeroIngressosDisponiveis(dto.numeroIngressosDisponiveis());
+
                             return repository.save(evento).map(EventoDTO::toDto);
                         }));
     }
 
-    public Flux<EventoDTO> obterPorTipo(String tipo) {
-        TipoEvento tipoEvento = TipoEvento.valueOf(tipo.toUpperCase());
-        return repository.findByTipo(tipoEvento)
-                .map(EventoDTO::toDto);
-    }
-
-    public Mono<Void> excluir(Long id, Long adminId) {
-        return validarAdminPorId(adminId)
-                .flatMap(userAdmin -> repository.findById(id)
+    // Cancelar evento
+    public Mono<EventoDTO> cancelarEvento(Long id, Long usuarioId) {
+        return validarCriador(usuarioId)
+                .flatMap(tipo -> repository.findById(id)
                         .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Evento não encontrado")))
                         .flatMap(evento -> {
-                            if (!userAdmin.getTipoUsuario().equals(TipoUsuario.SUPER) &&
-                                    !evento.getIdAdminCriador().equals(userAdmin.getIdUsuario())) {
+
+                            if (tipo != TipoUsuario.SUPER &&
+                                    !evento.getIdAdminCriador().equals(usuarioId)) {
+                                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Você só pode cancelar eventos que criou");
+                            }
+
+                            evento.setStatusEvento(StatusEvento.FECHADO);
+                            return repository.save(evento).map(EventoDTO::toDto);
+                        }));
+    }
+
+    // excluir evento
+    public Mono<Void> excluir(Long id, Long usuarioId) {
+        return validarCriador(usuarioId)
+                .flatMap(tipo -> repository.findById(id)
+                        .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Evento não encontrado")))
+                        .flatMap(evento -> {
+
+                            if (tipo != TipoUsuario.SUPER &&
+                                    !evento.getIdAdminCriador().equals(usuarioId)) {
                                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Você só pode excluir eventos que criou");
                             }
+
                             return repository.delete(evento);
                         }));
+    }
+
+    // Busca por categoria
+    public Flux<EventoDTO> obterPorTipo(String tipo) {
+        TipoEvento tipoEvento = TipoEvento.valueOf(tipo.toUpperCase());
+        return repository.findByTipo(tipoEvento).map(EventoDTO::toDto);
     }
 }

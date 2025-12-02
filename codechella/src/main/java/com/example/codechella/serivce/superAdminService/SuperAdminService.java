@@ -149,4 +149,25 @@ public class SuperAdminService {
                 })
                 .map(UsuarioMapper::toDTO);
     }
+
+
+    public Mono<TipoUsuario> obterTipoDoUsuario(Long usuarioId) {
+        //Primeiro verifica se é super admin
+        return superAdminRepository.findById(usuarioId)
+                .map(SuperAdmin::getTipoUsuario)
+                .switchIfEmpty(
+                        //verifica se é admin
+                        usuarioAdminRepository.findById(usuarioId)
+                                .map(UserAdmin::getTipoUsuario)
+                                .switchIfEmpty(
+                                        //verifica se é usuário comum
+                                        usuarioRepository.findById(usuarioId)
+                                                .map(Usuario::getTipoUsuario)
+                                                .switchIfEmpty(Mono.error(
+                                                        new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado")
+                                                ))
+                                )
+                );
+    }
+
 }
