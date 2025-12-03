@@ -90,9 +90,10 @@ public class EventoService {
                             evento.setTipo(dto.tipo());
                             evento.setNome(dto.nome());
                             evento.setData(dto.data());
+                            evento.setLocal(dto.local());
                             evento.setDescricao(dto.descricao());
-                            evento.setNumeroIngressosDisponiveis(dto.numeroIngressosDisponiveis());
-
+                            evento.setPreco(dto.preco());
+                            evento.setNumeroIngressosDisponiveis(dto.ingressosDisponiveis());
                             return repository.save(evento).map(EventoDTO::toDto);
                         }));
     }
