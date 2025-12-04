@@ -1,5 +1,6 @@
 package com.example.codechella.serivce.superAdminService;
 
+import com.example.codechella.models.evento.EventoDTO;
 import com.example.codechella.models.users.*;
 import com.example.codechella.repository.EventoRepository;
 import com.example.codechella.repository.SuperAdminRepository;
@@ -19,6 +20,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 
 @Service
 public class SuperAdminService {
@@ -100,16 +102,33 @@ public class SuperAdminService {
                 .then(usuarioAdminRepository.deleteById(id));
     }
 
-    // Lista todos os usuários comuns e admins
+    // Lista todos os usuários comuns e admins ATIVOS
     public Flux<UsuarioResponseDTO> listarUsuarios(Long superAdminId) {
         return validarSuperPorId(superAdminId)
-                .thenMany(usuarioRepository.findAll().map(UsuarioMapper::toDTO));
+                .thenMany(usuarioRepository.findAllAtivos().map(UsuarioMapper::toDTO));
     }
 
-    // Remove um usuário
+    // Remove um usuário (SOFT DELETE)
     public Mono<Void> removerUsuario(Long id, Long superAdminId) {
         return validarSuperPorId(superAdminId)
-                .then(usuarioRepository.deleteById(id));
+                .then(usuarioRepository.findById(id))
+                .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado")))
+                .flatMap(usuario -> {
+                    // Soft delete do usuário
+                    usuario.setDeletado(true);
+                    usuario.setDataExclusao(LocalDateTime.now());
+
+                    return usuarioRepository.save(usuario)
+                            // Cancelar todos os eventos criados por este usuário
+                            .then(eventoRepository.findAll()
+                                    .filter(evento -> evento.getIdAdminCriador() != null
+                                            && evento.getIdAdminCriador().equals(id))
+                                    .flatMap(evento -> {
+                                        evento.setCancelado(true);
+                                        return eventoRepository.save(evento);
+                                    })
+                                    .then());
+                });
     }
 
     // Exclui qualquer evento do sistema
@@ -150,6 +169,33 @@ public class SuperAdminService {
                 .map(UsuarioMapper::toDTO);
     }
 
+    // Lista usuários excluídos (soft delete)
+    public Flux<UsuarioResponseDTO> listarUsuariosExcluidos(Long superAdminId) {
+        return validarSuperPorId(superAdminId)
+                .thenMany(usuarioRepository.findAllDeletados()
+                        .map(UsuarioMapper::toDTO));
+    }
+
+    // Lista eventos cancelados de um usuário específico
+    public Flux<EventoDTO> listarEventosCancelados(Long idUsuario, Long superAdminId) {
+        return validarSuperPorId(superAdminId)
+                .thenMany(eventoRepository.findEventosCanceladosPorUsuario(idUsuario)
+                        .map(EventoDTO::toDto));
+    }
+
+    // Reativa um evento cancelado e o transfere para o Super Admin
+    public Mono<EventoDTO> reativarEvento(Long idEvento, Long superAdminId) {
+        return validarSuperPorId(superAdminId)
+                .then(eventoRepository.findById(idEvento))
+                .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Evento não encontrado")))
+                .flatMap(evento -> {
+                    // Reativa o evento e transfere para Super Admin
+                    evento.setCancelado(false);
+                    evento.setIdAdminCriador(superAdminId);
+                    return eventoRepository.save(evento);
+                })
+                .map(EventoDTO::toDto);
+    }
 
     public Mono<TipoUsuario> obterTipoDoUsuario(Long usuarioId) {
         //Primeiro verifica se é super admin

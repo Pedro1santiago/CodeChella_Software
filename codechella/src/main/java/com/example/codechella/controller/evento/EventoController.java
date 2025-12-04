@@ -29,7 +29,7 @@ public class EventoController {
 
     @GetMapping
     public Flux<EventoDTO> listarTodos() {
-        return service.listarTodos();
+        return service.listarTodosAtivos();
     }
 
     @GetMapping("/categoria/{tipo}")

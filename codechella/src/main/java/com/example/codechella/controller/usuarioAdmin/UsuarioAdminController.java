@@ -33,7 +33,7 @@ public class UsuarioAdminController {
 
     @GetMapping("/eventos")
     public Flux<EventoDTO> listarEventos() {
-        return eventoService.listarTodos();
+        return eventoService.listarTodosAtivos();
     }
 
     @GetMapping("/usuarios")

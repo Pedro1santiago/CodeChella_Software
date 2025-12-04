@@ -28,6 +28,9 @@ public class Evento {
     @Column("id_admin_criador")
     private Long idAdminCriador;
 
+    @Column("cancelado")
+    private Boolean cancelado = false;
+
     // Getters
     public Long getId() {
         return id;
@@ -69,6 +72,10 @@ public class Evento {
         return idAdminCriador;
     }
 
+    public Boolean getCancelado() {
+        return cancelado;
+    }
+
     // Setters
     public void setId(Long id) {
         this.id = id;
@@ -108,5 +115,9 @@ public class Evento {
 
     public void setIdAdminCriador(Long idAdminCriador) {
         this.idAdminCriador = idAdminCriador;
+    }
+
+    public void setCancelado(Boolean cancelado) {
+        this.cancelado = cancelado;
     }
 }

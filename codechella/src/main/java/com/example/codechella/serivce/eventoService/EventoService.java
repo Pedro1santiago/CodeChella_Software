@@ -42,8 +42,8 @@ public class EventoService {
                 });
     }
 
-    public Flux<EventoDTO> listarTodos() {
-        return repository.findAll().map(EventoDTO::toDto);
+    public Flux<EventoDTO> listarTodosAtivos() {
+        return repository.findAllAtivos().map(EventoDTO::toDto);
     }
 
     public Mono<EventoDTO> buscarPorId(Long id) {

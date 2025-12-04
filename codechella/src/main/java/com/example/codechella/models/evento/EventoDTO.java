@@ -13,7 +13,8 @@ public record EventoDTO(
         BigDecimal preco,
         Integer ingressosDisponiveis,
         StatusEvento statusEvento,
-        Long idAdminCriador
+        Long idAdminCriador,
+        Boolean cancelado
 ) {
     public static EventoDTO toDto(Evento evento) {
         return new EventoDTO(
@@ -26,7 +27,8 @@ public record EventoDTO(
                 evento.getPreco(),
                 evento.getNumeroIngressosDisponiveis(),
                 evento.getStatusEvento(),
-                evento.getIdAdminCriador()
+                evento.getIdAdminCriador(),
+                evento.getCancelado()
         );
     }
 
@@ -42,6 +44,7 @@ public record EventoDTO(
         evento.setNumeroIngressosDisponiveis(this.ingressosDisponiveis);
         evento.setStatusEvento(this.statusEvento);
         evento.setIdAdminCriador(this.idAdminCriador);
+        evento.setCancelado(this.cancelado);
         return evento;
     }
 }

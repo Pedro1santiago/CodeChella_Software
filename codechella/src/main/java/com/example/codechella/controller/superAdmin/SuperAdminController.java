@@ -1,5 +1,6 @@
 package com.example.codechella.controller.superAdmin;
 
+import com.example.codechella.models.evento.EventoDTO;
 import com.example.codechella.models.users.UsuarioAdminDTO;
 import com.example.codechella.models.users.UsuarioResponseDTO;
 import com.example.codechella.serivce.superAdminService.SuperAdminService;
@@ -17,7 +18,7 @@ public class SuperAdminController {
         this.superAdminService = superAdminService;
     }
 
-     //Cria um novo administrador a partir do DTO enviado.
+    //Cria um novo administrador a partir do DTO enviado.
     @PostMapping("/criar/admin")
     public Mono<UsuarioAdminDTO> criarAdmin(
             @RequestHeader("Authorization") String authHeader,
@@ -27,7 +28,7 @@ public class SuperAdminController {
         return superAdminService.criarAdmin(superAdminId, adminDTO);
     }
 
-     //Lista todos os administradores do sistema em JSON.
+    //Lista todos os administradores do sistema em JSON.
     @GetMapping("/listar/admins")
     public Flux<UsuarioAdminDTO> listarAdmins(@RequestHeader("Authorization") String authHeader) {
         Long superAdminId = superAdminService.extrairIdSuperAdminDoHeader(authHeader);
@@ -44,14 +45,14 @@ public class SuperAdminController {
         return superAdminService.removerAdmin(id, superAdminId);
     }
 
-     // Lista todos os usuários do sistema em JSON.
+    // Lista todos os usuários do sistema em JSON.
     @GetMapping("/listar/usuarios")
     public Flux<UsuarioResponseDTO> listarUsuarios(@RequestHeader("Authorization") String authHeader) {
         Long superAdminId = superAdminService.extrairIdSuperAdminDoHeader(authHeader);
         return superAdminService.listarUsuarios(superAdminId);
     }
 
-     //Remove um usuário pelo ID.
+    //Remove um usuário pelo ID.
     @DeleteMapping("/remover/usuario/{id}")
     public Mono<Void> removerUsuario(
             @PathVariable Long id,
@@ -71,7 +72,7 @@ public class SuperAdminController {
         return superAdminService.excluirEventoQualquer(id, superAdminId);
     }
 
-     //Promove um usuário comum para administrador.
+    //Promove um usuário comum para administrador.
     @PutMapping("/promover/admin/{id}")
     public Mono<UsuarioResponseDTO> promoverParaAdmin(
             @PathVariable Long id,
@@ -81,7 +82,7 @@ public class SuperAdminController {
         return superAdminService.promoverParaAdmin(id, superAdminId);
     }
 
-     // Rebaixa um administrador para usuário comum.
+    // Rebaixa um administrador para usuário comum.
     @PutMapping("/rebaixar/user/{id}")
     public Mono<UsuarioResponseDTO> rebaixarParaUser(
             @PathVariable Long id,
@@ -89,5 +90,32 @@ public class SuperAdminController {
 
         Long superAdminId = superAdminService.extrairIdSuperAdminDoHeader(authHeader);
         return superAdminService.rebaixarParaUser(id, superAdminId);
+    }
+
+    // Lista usuários excluídos (soft delete)
+    @GetMapping("/usuarios-excluidos")
+    public Flux<UsuarioResponseDTO> listarUsuariosExcluidos(@RequestHeader("Authorization") String authHeader) {
+        Long superAdminId = superAdminService.extrairIdSuperAdminDoHeader(authHeader);
+        return superAdminService.listarUsuariosExcluidos(superAdminId);
+    }
+
+    // Lista eventos cancelados de um usuário específico
+    @GetMapping("/eventos-cancelados/{idUsuario}")
+    public Flux<EventoDTO> listarEventosCancelados(
+            @PathVariable Long idUsuario,
+            @RequestHeader("Authorization") String authHeader) {
+
+        Long superAdminId = superAdminService.extrairIdSuperAdminDoHeader(authHeader);
+        return superAdminService.listarEventosCancelados(idUsuario, superAdminId);
+    }
+
+    // Reativa um evento cancelado e transfere para o Super Admin
+    @PutMapping("/reativar-evento/{idEvento}")
+    public Mono<EventoDTO> reativarEvento(
+            @PathVariable Long idEvento,
+            @RequestHeader("Authorization") String authHeader) {
+
+        Long superAdminId = superAdminService.extrairIdSuperAdminDoHeader(authHeader);
+        return superAdminService.reativarEvento(idEvento, superAdminId);
     }
 }

@@ -19,6 +19,12 @@ public class Usuario {
     @Column("created_at")
     private LocalDateTime criadoEm;
 
+    @Column("deletado")
+    private Boolean deletado = false;
+
+    @Column("data_exclusao")
+    private LocalDateTime dataExclusao;
+
     public Usuario() {}
 
     public Usuario(Long id, String nome, String email, String senha, TipoUsuario tipoUsuario, LocalDateTime criadoEm) {
@@ -54,4 +60,20 @@ public class Usuario {
 
     public LocalDateTime getCriadoEm() { return criadoEm; }
     public void setCriadoEm(LocalDateTime criadoEm){ this.criadoEm = criadoEm; }
+
+    public Boolean getDeletado() {
+        return deletado;
+    }
+
+    public void setDeletado(Boolean deletado) {
+        this.deletado = deletado;
+    }
+
+    public LocalDateTime getDataExclusao() {
+        return dataExclusao;
+    }
+
+    public void setDataExclusao(LocalDateTime dataExclusao) {
+        this.dataExclusao = dataExclusao;
+    }
 }
