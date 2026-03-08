@@ -37,10 +37,11 @@ public class SecurityConfig {
 
         http
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
+                .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
+                .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
                 .cors(cors -> cors.configurationSource(request -> {
                     CorsConfiguration config = new CorsConfiguration();
                     config.setAllowedOrigins(java.util.List.of(
-                            "http://localhost:5173",
                             "https://codechalle-front.vercel.app",
                             "https://codechella-five-sigma.vercel.app",
                             "https://codechalle-front-1dcb.vercel.app"
@@ -56,7 +57,6 @@ public class SecurityConfig {
                         .pathMatchers("/auth/**").permitAll()
                         .pathMatchers(HttpMethod.GET, "/eventos").permitAll()
                         .pathMatchers(HttpMethod.GET, "/eventos/**").permitAll()
-
                         .pathMatchers(HttpMethod.GET, "/actuator/health/**").permitAll()
 
                         .pathMatchers("/permissoes/pendentes").hasRole("SUPER")
