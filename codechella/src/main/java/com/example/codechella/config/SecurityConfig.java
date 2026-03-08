@@ -11,6 +11,7 @@ import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.authentication.AuthenticationWebFilter;
 import org.springframework.security.web.server.context.NoOpServerSecurityContextRepository;
+import org.springframework.security.web.server.util.matcher.ServerWebExchangeMatcher.MatchResult;
 import org.springframework.web.cors.CorsConfiguration;
 import reactor.core.publisher.Mono;
 
@@ -35,6 +36,13 @@ public class SecurityConfig {
         jwtFilter.setServerAuthenticationConverter(converter);
         jwtFilter.setSecurityContextRepository(NoOpServerSecurityContextRepository.getInstance());
 
+        jwtFilter.setRequiresAuthenticationMatcher(exchange -> {
+            if (exchange.getRequest().getHeaders().containsKey("Authorization")) {
+                return MatchResult.match();
+            }
+            return MatchResult.notMatch();
+        });
+
         http
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
@@ -54,10 +62,13 @@ public class SecurityConfig {
                 .securityContextRepository(NoOpServerSecurityContextRepository.getInstance())
                 .addFilterAt(jwtFilter, SecurityWebFiltersOrder.AUTHENTICATION)
                 .authorizeExchange(auth -> auth
+
                         .pathMatchers("/auth/**").permitAll()
+
                         .pathMatchers(HttpMethod.GET, "/eventos").permitAll()
                         .pathMatchers(HttpMethod.GET, "/eventos/**").permitAll()
-                        .pathMatchers(HttpMethod.GET, "/actuator/health/**").permitAll()
+
+                        .pathMatchers("/actuator/**").permitAll()
 
                         .pathMatchers("/permissoes/pendentes").hasRole("SUPER")
                         .pathMatchers("/permissoes/*/aprovar").hasRole("SUPER")
