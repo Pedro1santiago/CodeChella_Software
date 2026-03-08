@@ -52,14 +52,17 @@ public class SecurityConfig {
                 }))
                 .securityContextRepository(NoOpServerSecurityContextRepository.getInstance())
                 .addFilterAt(jwtFilter, SecurityWebFiltersOrder.AUTHENTICATION)
-                .authorizeExchange(exchanges -> exchanges
+                .authorizeExchange(auth -> auth
                         .pathMatchers("/auth/**").permitAll()
                         .pathMatchers(HttpMethod.GET, "/eventos").permitAll()
                         .pathMatchers(HttpMethod.GET, "/eventos/**").permitAll()
+
+                        .pathMatchers(HttpMethod.GET, "/actuator/health/**").permitAll()
+
                         .pathMatchers("/permissoes/pendentes").hasRole("SUPER")
                         .pathMatchers("/permissoes/*/aprovar").hasRole("SUPER")
                         .pathMatchers("/permissoes/*/negar").hasRole("SUPER")
-                        .pathMatchers(HttpMethod.GET,"/actuator/health").permitAll()
+
                         .anyExchange().authenticated()
                 );
 
