@@ -29,15 +29,14 @@ public class SecurityConfig {
 
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter(secretKey);
 
-        ReactiveAuthenticationManager authenticationManager = authentication ->
-                Mono.just(authentication);
+        ReactiveAuthenticationManager authenticationManager = Mono::just;
 
         AuthenticationWebFilter jwtFilter = new AuthenticationWebFilter(authenticationManager);
         jwtFilter.setServerAuthenticationConverter(converter);
         jwtFilter.setSecurityContextRepository(NoOpServerSecurityContextRepository.getInstance());
 
         http
-                .csrf(csrf -> csrf.disable())
+                .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .cors(cors -> cors.configurationSource(request -> {
                     CorsConfiguration config = new CorsConfiguration();
                     config.setAllowedOrigins(java.util.List.of(
@@ -60,6 +59,7 @@ public class SecurityConfig {
                         .pathMatchers("/permissoes/pendentes").hasRole("SUPER")
                         .pathMatchers("/permissoes/*/aprovar").hasRole("SUPER")
                         .pathMatchers("/permissoes/*/negar").hasRole("SUPER")
+                        .pathMatchers(HttpMethod.GET,"/actuator/health").permitAll()
                         .anyExchange().authenticated()
                 );
 
